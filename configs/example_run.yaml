@@ -1,0 +1,127 @@
+# ============================================================
+# TranscriptomiX Run Configuration
+# ============================================================
+# Copy this file for each new run:
+#   cp configs/example_run.yaml configs/run_003_T_VSMC.yaml
+# Edit parameters, then run your scripts pointing to this config.
+# Git tracks every config, so you can always diff two runs.
+# ============================================================
+
+run_id: "example_run"
+date: "2026-11-27"
+analyst: "Majic"
+description: "Example config template, not a real run"
+
+# ------------------------------------------------------------
+# 1. EXPOSURE AND PERTURBATION
+# ------------------------------------------------------------
+exposure:
+  compound: "estradiol"            # estradiol, testosterone, DHT, letrozole, fulvestrant, etc.
+  concentration: "1nM"
+  duration: "24h"
+  perturbation_class: "direct_hormone"  # direct_hormone, enzyme_inhibitor, receptor_antagonist, receptor_degrader
+  pathway_node: "E2"              # E2, T, DHT, CYP19A1, SRD5A, AR, ERalpha, ERbeta, GPER1
+
+# ------------------------------------------------------------
+# 2. DATASET SELECTION
+# ------------------------------------------------------------
+datasets:
+  geo_accessions:
+    - "GSE00000"
+    - "GSE11111"
+  cell_types:
+    - "HUVEC"
+  organism: "human"
+  platform: "RNA-seq"             # RNA-seq, Affymetrix, Illumina_array
+  suitability_filter: "USABLE"    # IDEAL, USABLE, DISAMBIGUATION, SUPPLEMENTARY
+  min_replicates: 3
+
+# ------------------------------------------------------------
+# 3. PHASE A: PROCESSING PARAMETERS
+# ------------------------------------------------------------
+phase_a:
+  # Step 2: Normalization
+  normalization_method: "vst"     # RMA (Affymetrix), neqc (Illumina), vst (DESeq2), TMM_voom (edgeR+limma)
+  ensembl_release: 110            # Pin this across ALL runs
+
+  # Step 3: Batch correction
+  batch_correction: "ComBat-seq"  # ComBat, ComBat-seq, rank_based, none
+  batch_variable: "study"
+  pca_check: true
+
+  # Step 4: Sex verification
+  sex_verification: true
+  sex_markers: ["XIST", "DDX3Y", "RPS4Y1", "EIF1AY"]
+
+  # Step 5: Differential expression
+  de_method: "DESeq2"             # limma, DESeq2
+  fdr_threshold: 0.05
+  log2fc_threshold: 0.5
+
+  # Step 7: WGCNA
+  wgcna:
+    soft_power: "auto"            # auto = pick from scale-free fit, or set integer
+    min_module_size: 30
+    merge_cut_height: 0.25
+    network_type: "signed"
+    min_rsq: 0.8                  # scale-free topology R-squared target
+
+  # Step 8: Theory A filtering
+  theory_a:
+    kme_threshold: 0.7
+    require_ar_confirmation: false   # true = only keep if flutamide/enzalutamide data exists
+    require_er_confirmation: false
+    require_aromatase_control: false
+
+# ------------------------------------------------------------
+# 4. PHASE B: VALIDATION PARAMETERS
+# ------------------------------------------------------------
+phase_b:
+  # Step 11-12: GTEx
+  gtex:
+    version: "v8"
+    focus_tissues:
+      - "Artery - Coronary"
+      - "Artery - Aorta"
+      - "Adipose - Visceral (Omentum)"
+      - "Adipose - Subcutaneous"
+      - "Liver"
+    age_brackets: ["20-29", "30-39", "40-49", "50-59", "60-69", "70-79"]
+    slope_pvalue_threshold: 0.05
+
+  # Step 14-18: SMR
+  smr:
+    gwas_source: "Ruth_2020"
+    gwas_traits:
+      - "testosterone_males"
+      - "testosterone_females"
+      - "SHBG_males"
+      - "SHBG_females"
+    ld_reference: "1000G_EUR_phase3"
+    genome_build: "GRCh38"
+    heidi_p_threshold: 0.05
+    bonferroni: true
+
+  # Step 19: COLOC
+  coloc:
+    h4_threshold: 0.8
+    window_kb: 500
+    prior_p1: 1e-4
+    prior_p2: 1e-4
+    prior_p12: 1e-5
+
+# ------------------------------------------------------------
+# 5. CONVERGENCE TIERS
+# ------------------------------------------------------------
+convergence:
+  tier1: "theory_a + theory_b + smr_coloc"
+  tier2: "any two of three"
+  tier3: "theory_a only"
+
+# ------------------------------------------------------------
+# 6. NOTES
+# ------------------------------------------------------------
+notes: |
+  Free-text field for run-specific decisions, deviations from
+  standard pipeline, reasons for parameter changes, or
+  observations during the run.
